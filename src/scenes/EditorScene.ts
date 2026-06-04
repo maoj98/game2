@@ -12,16 +12,33 @@ const TILE_COLORS: Record<string, number> = {
   door: 0xFF8C42,
 }
 
+const OVERLAY_EMOJI: Record<string, string> = {
+  pushBlock: '📦',
+  stepSwitch: '🔘',
+  timedPlatform: '⏱️',
+  waterTrap: '💧',
+  shield: '🛡️',
+  speedBoost: '⚡',
+  key: '🔑',
+  door: '🚪',
+  spawn: '📍',
+}
+
 export class EditorScene {
   container: Container
   private tileContainer: Container = new Container()
   private overlayContainer: Container = new Container()
   private tileSprites: Map<string, Graphics> = new Map()
+  private overlaySprites: Map<string, Container> = new Map()
   private offsetX = 0
   private offsetY = 0
   private width = 10
   private height = 10
   private gridClickCallback: ((gridX: number, gridY: number) => void) | null = null
+  private dataProvider: (() => {
+    tiles: TileType[][]
+    overlays: { x: number; y: number; type: string }[]
+  }) | null = null
 
   constructor() {
     this.container = new Container()
@@ -34,6 +51,7 @@ export class EditorScene {
         const worldY = e.y - this.offsetY
         const grid = this.screenToGridLocal(worldX, worldY)
         this.gridClickCallback(grid.gridX, grid.gridY)
+        this.redrawAll()
       }
     })
   }
@@ -42,58 +60,30 @@ export class EditorScene {
     this.gridClickCallback = cb
   }
 
+  setDataProvider(provider: () => { tiles: TileType[][]; overlays: { x: number; y: number; type: string }[] }): void {
+    this.dataProvider = provider
+  }
+
   loadGrid(tiles: TileType[][], overlayElements?: { x: number; y: number; type: string }[]): void {
     this.width = tiles[0]?.length ?? 0
     this.height = tiles.length
     this.clear()
     this.calculateOffset()
-
-    for (let y = 0; y < this.height; y++) {
-      for (let x = 0; x < this.width; x++) {
-        const tile = tiles[y][x]
-        const pos = gridToScreen(x, y)
-        const g = new Graphics()
-        const color = TILE_COLORS[tile] ?? 0xC8E6C9
-
-        g.moveTo(0, -TILE_HEIGHT / 2)
-        g.lineTo(TILE_WIDTH / 2, 0)
-        g.lineTo(0, TILE_HEIGHT / 2)
-        g.lineTo(-TILE_WIDTH / 2, 0)
-        g.closePath()
-        g.fill(color)
-        g.stroke({ color: 0x000000, width: 0.5, alpha: 0.3 })
-
-        g.position.set(pos.x, pos.y)
-        g.zIndex = getDepth(x, y)
-        this.tileSprites.set(`${x},${y}`, g)
-        this.tileContainer.addChild(g)
-      }
-    }
-
-    if (overlayElements) {
-      for (const el of overlayElements) {
-        const pos = gridToScreen(el.x, el.y)
-        const c = new Container()
-        const g = new Graphics()
-        g.circle(0, -4, 6)
-        g.fill(0xFF4081)
-        g.stroke({ color: 0xC51162, width: 1 })
-        c.addChild(g)
-        const style = new TextStyle({ fontSize: 8, fill: '#FFFFFF' })
-        const label = new Text({ text: el.type.substring(0, 2), style })
-        label.anchor.set(0.5)
-        c.addChild(label)
-        c.position.set(pos.x, pos.y)
-        c.zIndex = getDepth(el.x, el.y) + 0.5
-        this.overlayContainer.addChild(c)
-      }
-    }
-
+    this.drawTiles(tiles)
+    this.drawOverlays(overlayElements ?? [])
     this.tileContainer.sortableChildren = true
     this.overlayContainer.sortableChildren = true
   }
 
-  updateTile(x: number, y: number, tile: TileType): void {
+  private drawTiles(tiles: TileType[][]): void {
+    for (let y = 0; y < this.height; y++) {
+      for (let x = 0; x < this.width; x++) {
+        this.drawSingleTile(x, y, tiles[y][x])
+      }
+    }
+  }
+
+  private drawSingleTile(x: number, y: number, tile: TileType): void {
     const key = `${x},${y}`
     const existing = this.tileSprites.get(key)
     if (existing) {
@@ -115,6 +105,68 @@ export class EditorScene {
     this.tileContainer.addChild(g)
   }
 
+  private drawOverlays(elements: { x: number; y: number; type: string }[]): void {
+    this.overlaySprites.forEach((sprite) => this.overlayContainer.removeChild(sprite))
+    this.overlaySprites.clear()
+    for (const el of elements) {
+      this.drawSingleOverlay(el.x, el.y, el.type)
+    }
+  }
+
+  private drawSingleOverlay(x: number, y: number, type: string): void {
+    const key = `${x},${y}`
+    const existing = this.overlaySprites.get(key)
+    if (existing) {
+      this.overlayContainer.removeChild(existing)
+    }
+    const pos = gridToScreen(x, y)
+    const c = new Container()
+    const g = new Graphics()
+    g.circle(0, -4, 10)
+    g.fill(0xFFFFFF)
+    g.stroke({ color: 0x333333, width: 1 })
+    c.addChild(g)
+    const style = new TextStyle({ fontSize: 12, fill: '#333333' })
+    const label = new Text({ text: OVERLAY_EMOJI[type] ?? type.substring(0, 2), style })
+    label.anchor.set(0.5)
+    label.position.set(0, -4)
+    c.addChild(label)
+    c.position.set(pos.x, pos.y)
+    c.zIndex = getDepth(x, y) + 0.5
+    this.overlaySprites.set(key, c)
+    this.overlayContainer.addChild(c)
+  }
+
+  redrawAll(): void {
+    if (!this.dataProvider) return
+    const data = this.dataProvider()
+    for (let y = 0; y < this.height; y++) {
+      for (let x = 0; x < this.width; x++) {
+        if (data.tiles[y]?.[x]) {
+          this.drawSingleTile(x, y, data.tiles[y][x])
+        }
+      }
+    }
+    this.drawOverlays(data.overlays)
+  }
+
+  updateTile(x: number, y: number, tile: TileType): void {
+    this.drawSingleTile(x, y, tile)
+  }
+
+  addOverlay(x: number, y: number, type: string): void {
+    this.drawSingleOverlay(x, y, type)
+  }
+
+  removeOverlay(x: number, y: number): void {
+    const key = `${x},${y}`
+    const existing = this.overlaySprites.get(key)
+    if (existing) {
+      this.overlayContainer.removeChild(existing)
+      this.overlaySprites.delete(key)
+    }
+  }
+
   private calculateOffset(): void {
     const centerScreen = gridToScreen(Math.floor(this.width / 2), Math.floor(this.height / 2))
     this.offsetX = -centerScreen.x
@@ -133,6 +185,7 @@ export class EditorScene {
     this.tileContainer.removeChildren()
     this.overlayContainer.removeChildren()
     this.tileSprites.clear()
+    this.overlaySprites.clear()
   }
 
   resize(width: number, height: number): void {

@@ -85,13 +85,32 @@ onMounted(async () => {
   scene.resize(app.screen.width, app.screen.height)
   app.stage.addChild(scene.container)
 
+  scene.setDataProvider(() => {
+    const overlay: { x: number; y: number; type: string }[] = []
+    for (const m of editorStore.mechanisms) {
+      overlay.push({ x: m.gridX, y: m.gridY, type: m.type })
+    }
+    for (const i of editorStore.items) {
+      overlay.push({ x: i.gridX, y: i.gridY, type: i.itemType })
+    }
+    for (const k of editorStore.keys) {
+      overlay.push({ x: k.gridX, y: k.gridY, type: 'key' })
+    }
+    for (const d of editorStore.doors) {
+      overlay.push({ x: d.gridX, y: d.gridY, type: 'door' })
+    }
+    for (const s of editorStore.playerSpawns) {
+      overlay.push({ x: s.gridX, y: s.gridY, type: 'spawn' })
+    }
+    return { tiles: editorStore.tiles, overlays: overlay }
+  })
+
   scene.onGridClick((gridX: number, gridY: number) => {
     if (editorStore.selectedTool === 'erase') {
       editorStore.eraseElement(gridX, gridY)
     } else {
       editorStore.placeElement(gridX, gridY)
     }
-    refreshScene()
   })
 
   refreshScene()
