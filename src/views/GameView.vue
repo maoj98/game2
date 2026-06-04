@@ -8,7 +8,7 @@ import { GameScene } from '@/scenes/GameScene'
 import { LEVELS, INPUT_MAPPINGS } from '@/data'
 import type { MechanismConfig } from '@/types'
 import { InputManager } from '@/game/core/InputManager'
-
+   
 const router = useRouter()
 const gameStore = useGameStore()
 const roomStore = useRoomStore()
