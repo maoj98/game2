@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useRoomStore } from '@/stores/room'
 import { SKINS, LEVELS } from '@/data'
@@ -11,12 +11,35 @@ const canStart = computed(() => roomStore.canStart)
 const players = computed(() => roomStore.players)
 const currentLevel = computed(() => roomStore.currentLevel)
 
-function selectSkin(playerIndex: number, skinId: string) {
-  roomStore.setPlayerSkin(playerIndex, skinId)
+const selectedPlayerIdx = ref(0)
+
+function skinEmoji(skinId: string): string {
+  const map: Record<string, string> = {
+    cat: '🐱', dog: '🐶', bunny: '🐰', bear: '🐻',
+    fox: '🦊', panda: '🐼', frog: '🐸', penguin: '🐧',
+  }
+  return map[skinId] ?? '🐱'
+}
+
+function selectPlayer(idx: number) {
+  selectedPlayerIdx.value = idx
+}
+
+function selectSkin(skinId: string) {
+  if (selectedPlayerIdx.value < roomStore.players.length) {
+    roomStore.setPlayerSkin(selectedPlayerIdx.value, skinId)
+  }
 }
 
 function toggleReady(playerIndex: number) {
   roomStore.setPlayerReady(playerIndex)
+}
+
+function removePlayer(playerIndex: number) {
+  roomStore.removePlayer(playerIndex)
+  if (selectedPlayerIdx.value >= roomStore.players.length) {
+    selectedPlayerIdx.value = Math.max(0, roomStore.players.length - 1)
+  }
 }
 
 function selectLevel(levelId: string) {
@@ -26,6 +49,7 @@ function selectLevel(levelId: string) {
 function addPlayer() {
   if (roomStore.players.length < 4) {
     roomStore.joinRoom(`玩家${roomStore.players.length + 1}`)
+    selectedPlayerIdx.value = roomStore.players.length - 1
   }
 }
 
@@ -62,13 +86,22 @@ function goBack() {
               v-for="(player, idx) in players"
               :key="player.id"
               class="player-card"
-              :class="{ ready: player.ready }"
+              :class="{
+                ready: player.ready,
+                selected: selectedPlayerIdx === idx
+              }"
+              @click="selectPlayer(idx)"
             >
+              <button
+                class="delete-btn"
+                @click.stop="removePlayer(idx)"
+                title="移除玩家"
+              >✕</button>
               <div
                 class="player-avatar"
                 :style="{ background: SKINS.find(s => s.id === player.skinId)?.color ?? '#999' }"
               >
-                {{ idx === 0 ? '🐱' : idx === 1 ? '🐶' : idx === 2 ? '🐰' : '🐻' }}
+                {{ skinEmoji(player.skinId) }}
               </div>
               <div class="player-info">
                 <span class="player-name">{{ player.name }}</span>
@@ -77,7 +110,7 @@ function goBack() {
               <button
                 class="ready-btn"
                 :class="{ 'is-ready': player.ready }"
-                @click="toggleReady(idx)"
+                @click.stop="toggleReady(idx)"
               >
                 {{ player.ready ? '✅ 已准备' : '准备' }}
               </button>
@@ -91,25 +124,25 @@ function goBack() {
             </button>
           </div>
 
-          <h2 class="section-title">选择皮肤</h2>
+          <h2 class="section-title">
+            选择皮肤
+            <span v-if="players[selectedPlayerIdx]" class="skin-hint">
+              （{{ players[selectedPlayerIdx].name }}）
+            </span>
+          </h2>
           <div class="skin-grid">
             <div
               v-for="skin in SKINS"
               :key="skin.id"
               class="skin-item"
-              :style="{ borderColor: skin.color }"
-              @click="selectSkin(0, skin.id)"
+              :class="{
+                'skin-active': players[selectedPlayerIdx]?.skinId === skin.id
+              }"
+              :style="{ borderColor: players[selectedPlayerIdx]?.skinId === skin.id ? skin.color : 'transparent' }"
+              @click="selectSkin(skin.id)"
             >
               <div class="skin-preview" :style="{ background: skin.color }">
-                <span class="skin-emoji">{{
-                  skin.id === 'cat' ? '🐱' :
-                  skin.id === 'dog' ? '🐶' :
-                  skin.id === 'bunny' ? '🐰' :
-                  skin.id === 'bear' ? '🐻' :
-                  skin.id === 'fox' ? '🦊' :
-                  skin.id === 'panda' ? '🐼' :
-                  skin.id === 'frog' ? '🐸' : '🐧'
-                }}</span>
+                <span class="skin-emoji">{{ skinEmoji(skin.id) }}</span>
               </div>
               <span class="skin-name">{{ skin.name }}</span>
             </div>
@@ -242,6 +275,12 @@ function goBack() {
   margin-bottom: 0.75rem;
 }
 
+.skin-hint {
+  font-size: 0.875rem;
+  color: #FF8C42;
+  font-weight: normal;
+}
+
 .player-list {
   display: flex;
   flex-direction: column;
@@ -250,19 +289,62 @@ function goBack() {
 }
 
 .player-card {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 0.75rem;
   background: rgba(255,255,255,0.7);
   padding: 0.75rem 1rem;
   border-radius: 12px;
-  border: 2px solid transparent;
+  border: 2.5px solid transparent;
   transition: all 0.2s;
+  cursor: pointer;
+}
+
+.player-card.selected {
+  border-color: #FF8C42;
+  background: rgba(255,140,66,0.12);
+  box-shadow: 0 0 0 2px rgba(255,140,66,0.25);
 }
 
 .player-card.ready {
   border-color: #4CAF50;
   background: rgba(76,175,80,0.1);
+}
+
+.player-card.selected.ready {
+  border-color: #FF8C42;
+  background: rgba(255,140,66,0.12);
+  box-shadow: 0 0 0 2px rgba(255,140,66,0.25);
+}
+
+.delete-btn {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(229,57,53,0.12);
+  color: #E53935;
+  font-size: 0.75rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  opacity: 0;
+}
+
+.player-card:hover .delete-btn {
+  opacity: 1;
+}
+
+.delete-btn:hover {
+  background: #E53935;
+  color: white;
 }
 
 .player-avatar {
@@ -344,6 +426,12 @@ function goBack() {
 .skin-item:hover {
   background: rgba(255,255,255,0.9);
   transform: scale(1.05);
+}
+
+.skin-item.skin-active {
+  background: rgba(255,255,255,0.95);
+  transform: scale(1.08);
+  box-shadow: 0 0 0 3px rgba(255,140,66,0.3);
 }
 
 .skin-preview {
