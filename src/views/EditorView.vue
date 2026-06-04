@@ -337,20 +337,31 @@ function goBack() {
 }
 
 .tool-btn {
-  padding: 0.375rem;
-  border: 1.5px solid #E0E0E0;
-  border-radius: 6px;
+  padding: 0.5rem;
+  border: 2px solid #E0E0E0;
+  border-radius: 8px;
   background: white;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.2s;
   white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.tool-btn:hover {
+  border-color: #FFB74D;
+  background: #FFF8E1;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(255,140,66,0.2);
 }
 
 .tool-btn.active {
   border-color: #FF8C42;
-  background: #FFF3E0;
+  background: linear-gradient(135deg, #FFF3E0, #FFE0B2);
   color: #E65100;
+  font-weight: bold;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(255,140,66,0.35), inset 0 0 0 1px rgba(255,255,255,0.5);
 }
 
 .tile-grid {
@@ -363,17 +374,26 @@ function goBack() {
   display: flex;
   align-items: center;
   gap: 0.375rem;
-  padding: 0.375rem;
+  padding: 0.5rem;
   border: 2px solid #E0E0E0;
   border-radius: 6px;
   background: white;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.2s;
+}
+
+.tile-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
 .tile-btn.active {
-  background: #FFF3E0;
+  border-color: #FF8C42;
+  background: linear-gradient(135deg, #FFF3E0, #FFE0B2);
+  font-weight: bold;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(255,140,66,0.3);
 }
 
 .tile-preview {
@@ -390,19 +410,29 @@ function goBack() {
 }
 
 .mechanism-btn, .item-btn {
-  padding: 0.375rem;
-  border: 1.5px solid #E0E0E0;
+  padding: 0.5rem;
+  border: 2px solid #E0E0E0;
   border-radius: 6px;
   background: white;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   cursor: pointer;
   text-align: left;
-  transition: all 0.15s;
+  transition: all 0.2s;
+}
+
+.mechanism-btn:hover, .item-btn:hover {
+  border-color: #FFB74D;
+  background: #FFF8E1;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(255,140,66,0.15);
 }
 
 .mechanism-btn.active, .item-btn.active {
   border-color: #FF8C42;
-  background: #FFF3E0;
+  background: linear-gradient(135deg, #FFF3E0, #FFE0B2);
+  font-weight: bold;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(255,140,66,0.3);
 }
 
 .stats p {
