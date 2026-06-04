@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { Application } from 'pixi.js'
 import { useEditorStore } from '@/stores/editor'
+import type { EditorTool } from '@/stores/editor'
 import { EditorScene } from '@/scenes/EditorScene'
 import type { TileType, MechanismType, ItemType } from '@/types'
 
@@ -12,6 +13,16 @@ const editorStore = useEditorStore()
 const canvasContainer = ref<HTMLDivElement>()
 let app: Application | null = null
 let scene: EditorScene | null = null
+
+const tools: { value: EditorTool; label: string }[] = [
+  { value: 'tile', label: '🟩 瓦片' },
+  { value: 'mechanism', label: '⚙️ 机关' },
+  { value: 'item', label: '💊 道具' },
+  { value: 'key', label: '🔑 钥匙' },
+  { value: 'door', label: '🚪 门' },
+  { value: 'spawn', label: '📍 出生点' },
+  { value: 'erase', label: '🧹 擦除' },
+]
 
 const tileTypes: { value: TileType; label: string; color: string }[] = [
   { value: 'ground', label: '地面', color: '#C8E6C9' },
@@ -75,39 +86,11 @@ onMounted(async () => {
   app.stage.addChild(scene.container)
 
   scene.onGridClick((gridX: number, gridY: number) => {
-    if (gridX < 0 || gridY < 0 || gridX >= editorStore.width || gridY >= editorStore.height) return
-
-    const tool = editorStore.selectedTool
-
-    if (tool === 'tile') {
-      editorStore.setTile(gridX, gridY, editorStore.selectedTile)
-    } else if (tool === 'mechanism') {
-      editorStore.addMechanism({
-        type: editorStore.selectedMechanism,
-        gridX,
-        gridY,
-        config: editorStore.selectedMechanism === 'timedPlatform' ? { duration: 5 } : {},
-      })
-    } else if (tool === 'item') {
-      editorStore.addItem({ itemType: editorStore.selectedItem, gridX, gridY })
-    } else if (tool === 'key') {
-      editorStore.addKey({ gridX, gridY })
-    } else if (tool === 'door') {
-      editorStore.addDoor({ gridX, gridY, requiredKeys: editorStore.keys.length || 1 })
-    } else if (tool === 'spawn') {
-      editorStore.setPlayerSpawns([{ gridX, gridY }])
-    } else if (tool === 'erase') {
-      const mIdx = editorStore.mechanisms.findIndex((m) => m.gridX === gridX && m.gridY === gridY)
-      if (mIdx >= 0) editorStore.removeMechanism(mIdx)
-      const iIdx = editorStore.items.findIndex((i) => i.gridX === gridX && i.gridY === gridY)
-      if (iIdx >= 0) editorStore.removeItem(iIdx)
-      const kIdx = editorStore.keys.findIndex((k) => k.gridX === gridX && k.gridY === gridY)
-      if (kIdx >= 0) editorStore.removeKey(kIdx)
-      const dIdx = editorStore.doors.findIndex((d) => d.gridX === gridX && d.gridY === gridY)
-      if (dIdx >= 0) editorStore.removeDoor(dIdx)
-      editorStore.setTile(gridX, gridY, 'ground')
+    if (editorStore.selectedTool === 'erase') {
+      editorStore.eraseElement(gridX, gridY)
+    } else {
+      editorStore.placeElement(gridX, gridY)
     }
-
     refreshScene()
   })
 
@@ -122,7 +105,7 @@ onUnmounted(() => {
   scene = null
 })
 
-function selectTool(tool: typeof editorStore.selectedTool) {
+function selectTool(tool: EditorTool) {
   editorStore.selectedTool = tool
   refreshScene()
 }
@@ -173,20 +156,13 @@ function goBack() {
         <h3>工具选择</h3>
         <div class="tool-grid">
           <button
-            v-for="tool in (['tile', 'mechanism', 'item', 'key', 'door', 'spawn', 'erase'] as const)"
-            :key="tool"
+            v-for="tool in tools"
+            :key="tool.value"
             class="tool-btn"
-            :class="{ active: editorStore.selectedTool === tool }"
-            @click="selectTool(tool)"
+            :class="{ active: editorStore.selectedTool === tool.value }"
+            @click="selectTool(tool.value)"
           >
-            {{
-              tool === 'tile' ? '🟩 瓦片' :
-              tool === 'mechanism' ? '⚙️ 机关' :
-              tool === 'item' ? '💊 道具' :
-              tool === 'key' ? '🔑 钥匙' :
-              tool === 'door' ? '🚪 门' :
-              tool === 'spawn' ? '📍 出生点' : '🧹 擦除'
-            }}
+            {{ tool.label }}
           </button>
         </div>
       </div>

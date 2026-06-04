@@ -2,6 +2,8 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { LevelData, TileType, MechanismConfig, ItemSpawn, IsoPosition, DoorConfig } from '@/types'
 
+export type EditorTool = 'tile' | 'mechanism' | 'item' | 'key' | 'door' | 'spawn' | 'erase'
+
 export const useEditorStore = defineStore('editor', () => {
   const name = ref('自定义关卡')
   const width = ref(10)
@@ -13,7 +15,7 @@ export const useEditorStore = defineStore('editor', () => {
   const keys = ref<IsoPosition[]>([])
   const doors = ref<DoorConfig[]>([])
   const playerSpawns = ref<IsoPosition[]>([])
-  const selectedTool = ref<'select' | 'tile' | 'mechanism' | 'item' | 'key' | 'door' | 'spawn' | 'erase'>('tile')
+  const selectedTool = ref<EditorTool>('tile')
   const selectedTile = ref<TileType>('ground')
   const selectedMechanism = ref<MechanismConfig['type']>('pushBlock')
   const selectedItem = ref<ItemSpawn['itemType']>('shield')
@@ -51,6 +53,8 @@ export const useEditorStore = defineStore('editor', () => {
   }
 
   function addMechanism(m: MechanismConfig): void {
+    const exists = mechanisms.value.some((me) => me.gridX === m.gridX && me.gridY === m.gridY && me.type === m.type)
+    if (exists) return
     mechanisms.value.push({ ...m })
   }
 
@@ -59,6 +63,8 @@ export const useEditorStore = defineStore('editor', () => {
   }
 
   function addItem(i: ItemSpawn): void {
+    const exists = items.value.some((it) => it.gridX === i.gridX && it.gridY === i.gridY && it.itemType === i.itemType)
+    if (exists) return
     items.value.push({ ...i })
   }
 
@@ -67,6 +73,8 @@ export const useEditorStore = defineStore('editor', () => {
   }
 
   function addKey(pos: IsoPosition): void {
+    const exists = keys.value.some((k) => k.gridX === pos.gridX && k.gridY === pos.gridY)
+    if (exists) return
     keys.value.push({ ...pos })
   }
 
@@ -75,6 +83,8 @@ export const useEditorStore = defineStore('editor', () => {
   }
 
   function addDoor(d: DoorConfig): void {
+    const exists = doors.value.some((dr) => dr.gridX === d.gridX && dr.gridY === d.gridY)
+    if (exists) return
     doors.value.push({ ...d })
   }
 
@@ -84,6 +94,92 @@ export const useEditorStore = defineStore('editor', () => {
 
   function setPlayerSpawns(spawns: IsoPosition[]): void {
     playerSpawns.value = spawns.map((s) => ({ ...s }))
+  }
+
+  function placeElement(gridX: number, gridY: number): boolean {
+    if (gridX < 0 || gridY < 0 || gridX >= width.value || gridY >= height.value) return false
+
+    const tool = selectedTool.value
+
+    if (tool === 'tile') {
+      setTile(gridX, gridY, selectedTile.value)
+      return true
+    }
+
+    if (tool === 'mechanism') {
+      addMechanism({
+        type: selectedMechanism.value,
+        gridX,
+        gridY,
+        config: selectedMechanism.value === 'timedPlatform' ? { duration: 5 } : {},
+      })
+      return true
+    }
+
+    if (tool === 'item') {
+      addItem({ itemType: selectedItem.value, gridX, gridY })
+      return true
+    }
+
+    if (tool === 'key') {
+      addKey({ gridX, gridY })
+      return true
+    }
+
+    if (tool === 'door') {
+      addDoor({ gridX, gridY, requiredKeys: keys.value.length || 1 })
+      return true
+    }
+
+    if (tool === 'spawn') {
+      setPlayerSpawns([{ gridX, gridY }])
+      return true
+    }
+
+    return false
+  }
+
+  function eraseElement(gridX: number, gridY: number): boolean {
+    if (gridX < 0 || gridY < 0 || gridX >= width.value || gridY >= height.value) return false
+
+    let erased = false
+
+    const mIdx = mechanisms.value.findIndex((m) => m.gridX === gridX && m.gridY === gridY)
+    if (mIdx >= 0) {
+      removeMechanism(mIdx)
+      erased = true
+    }
+
+    const iIdx = items.value.findIndex((i) => i.gridX === gridX && i.gridY === gridY)
+    if (iIdx >= 0) {
+      removeItem(iIdx)
+      erased = true
+    }
+
+    const kIdx = keys.value.findIndex((k) => k.gridX === gridX && k.gridY === gridY)
+    if (kIdx >= 0) {
+      removeKey(kIdx)
+      erased = true
+    }
+
+    const dIdx = doors.value.findIndex((d) => d.gridX === gridX && d.gridY === gridY)
+    if (dIdx >= 0) {
+      removeDoor(dIdx)
+      erased = true
+    }
+
+    const hasSpawn = playerSpawns.value.some((s) => s.gridX === gridX && s.gridY === gridY)
+    if (hasSpawn) {
+      playerSpawns.value = playerSpawns.value.filter((s) => !(s.gridX === gridX && s.gridY === gridY))
+      erased = true
+    }
+
+    if (tiles.value[gridY]?.[gridX] && tiles.value[gridY][gridX] !== 'ground') {
+      tiles.value[gridY][gridX] = 'ground'
+      erased = true
+    }
+
+    return erased
   }
 
   function resize(w: number, h: number): void {
@@ -159,6 +255,7 @@ export const useEditorStore = defineStore('editor', () => {
     isValid,
     initGrid, setTile, addMechanism, removeMechanism, addItem, removeItem,
     addKey, removeKey, addDoor, removeDoor, setPlayerSpawns, resize,
+    placeElement, eraseElement,
     exportLevel, saveToLocalStorage, loadFromLocalStorage, loadLevel, reset,
   }
 })
