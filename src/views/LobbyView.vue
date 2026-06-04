@@ -48,7 +48,7 @@ function selectLevel(levelId: string) {
 
 function addPlayer() {
   if (roomStore.players.length < 4) {
-    roomStore.joinRoom(`玩家${roomStore.players.length + 1}`)
+    roomStore.joinRoom()
     selectedPlayerIdx.value = roomStore.players.length - 1
   }
 }
@@ -84,7 +84,7 @@ function goBack() {
           <div class="player-list">
             <div
               v-for="(player, idx) in players"
-              :key="player.id"
+              :key="player.uid"
               class="player-card"
               :class="{
                 ready: player.ready,
@@ -92,6 +92,7 @@ function goBack() {
               }"
               @click="selectPlayer(idx)"
             >
+              <div class="player-order">{{ idx + 1 }}</div>
               <button
                 class="delete-btn"
                 @click.stop="removePlayer(idx)"
@@ -345,6 +346,24 @@ function goBack() {
 .delete-btn:hover {
   background: #E53935;
   color: white;
+}
+
+.player-order {
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #FF8C42;
+  color: white;
+  font-family: 'ZCOOL KuaiLe', cursive;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(255,140,66,0.4);
+  z-index: 1;
 }
 
 .player-avatar {

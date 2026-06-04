@@ -12,7 +12,7 @@ function createRoom() {
 
 function joinRoom() {
   roomStore.createRoom()
-  roomStore.joinRoom('加入者')
+  roomStore.joinRoom()
   router.push('/lobby')
 }
 

@@ -3,6 +3,8 @@ import { ref, computed } from 'vue'
 import type { PlayerState, RoomState } from '@/types'
 import { SKINS, LEVELS } from '@/data'
 
+let playerCounter = 0
+
 export const useRoomStore = defineStore('room', () => {
   const roomId = ref('')
   const hostId = ref('')
@@ -19,20 +21,23 @@ export const useRoomStore = defineStore('room', () => {
     hostId.value = 'player0'
     status.value = 'waiting'
     players.value = []
-    addPlayer('player0', '玩家1')
+    addPlayer('player0')
   }
 
-  function joinRoom(name: string): void {
+  function joinRoom(): void {
     if (players.value.length >= 4) return
     const id = `player${players.value.length}`
-    addPlayer(id, name)
+    addPlayer(id)
   }
 
-  function addPlayer(id: string, name: string): void {
+  function addPlayer(id: string): void {
+    playerCounter++
     const slotIndex = players.value.length
+    const uid = `player_${Date.now()}_${playerCounter}`
     players.value.push({
+      uid,
       id,
-      name,
+      name: `玩家${playerCounter}`,
       skinId: SKINS[slotIndex % SKINS.length].id,
       ready: false,
       slotIndex,
@@ -46,6 +51,14 @@ export const useRoomStore = defineStore('room', () => {
       speedBoostTimer: 0,
       alive: true,
     })
+  }
+
+  function getCounter(): number {
+    return playerCounter
+  }
+
+  function resetCounter(): void {
+    playerCounter = 0
   }
 
   function setPlayerSkin(playerIndex: number, skinId: string): void {
@@ -81,11 +94,12 @@ export const useRoomStore = defineStore('room', () => {
     levelId.value = 'level1'
     status.value = 'waiting'
     players.value = []
+    resetCounter()
   }
 
   return {
     roomId, hostId, levelId, status, players,
     currentLevel, canStart, isHost,
-    createRoom, joinRoom, setPlayerSkin, setPlayerReady, setLevel, setStatus, removePlayer, reset,
+    createRoom, joinRoom, setPlayerSkin, setPlayerReady, setLevel, setStatus, removePlayer, reset, getCounter,
   }
 })

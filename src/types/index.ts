@@ -65,6 +65,7 @@ export interface InputMapping {
 }
 
 export interface PlayerState {
+  uid: string
   id: string
   name: string
   skinId: string

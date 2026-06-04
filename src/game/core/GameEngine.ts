@@ -67,6 +67,7 @@ export class GameEngine {
     for (let i = 0; i < playerCount && i < level.playerSpawns.length; i++) {
       const spawn = level.playerSpawns[i]
       this.players.push({
+        uid: `engine_player_${i}_${Date.now()}`,
         id: `player${i}`,
         name: `玩家${i + 1}`,
         skinId: 'cat',
