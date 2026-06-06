@@ -141,6 +141,7 @@ function saveLevel() {
     saveErrors.value = []
     showSaveError.value = false
     alert('关卡已保存！')
+    resetEditor()
   } else {
     saveErrors.value = result.errors
     showSaveError.value = true
