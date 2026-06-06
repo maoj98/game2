@@ -92,7 +92,46 @@ export class GameEngine {
     }
   }
 
+  validateLevel(): { valid: boolean; errors: string[] } {
+    const errors: string[] = []
+    if (!this.level) {
+      errors.push('关卡数据为空')
+      return { valid: false, errors }
+    }
+
+    if (this.level.keys.length === 0) {
+      errors.push('关卡没有钥匙，无法打开门')
+    }
+
+    if (this.level.doors.length === 0) {
+      errors.push('关卡没有门，无法通关')
+    }
+
+    if (this.level.playerSpawns.length === 0) {
+      errors.push('关卡没有出生点，玩家无法生成')
+    }
+
+    if (this.level.doors.length > 0 && this.level.keys.length > 0) {
+      const minRequiredKeys = Math.min(...this.level.doors.map(d => d.requiredKeys))
+      if (this.level.keys.length < minRequiredKeys) {
+        errors.push(`钥匙数量不足：需要至少 ${minRequiredKeys} 把钥匙`)
+      }
+    }
+
+    const hasGround = this.level.tiles.some(row => row.some(tile => tile === 'ground'))
+    if (!hasGround) {
+      errors.push('地图没有可通行的地面')
+    }
+
+    return { valid: errors.length === 0, errors }
+  }
+
   start(): void {
+    const validation = this.validateLevel()
+    if (!validation.valid) {
+      this.finishGame(false, validation.errors)
+      return
+    }
     this.started = true
     this.lastTimestamp = performance.now()
   }
@@ -351,7 +390,7 @@ export class GameEngine {
     }
   }
 
-  private finishGame(completed: boolean): void {
+  private finishGame(completed: boolean, errors?: string[]): void {
     this.finished = true
     this.started = false
     let stars: 0 | 1 | 2 | 3 = 0
@@ -368,6 +407,7 @@ export class GameEngine {
       keysCollected: this.collectedKeys,
       totalKeys: this.level?.keys.length ?? 0,
       stars,
+      errors,
     }
     this.emit('gameFinished', this.result)
   }

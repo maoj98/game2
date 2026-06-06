@@ -9,6 +9,8 @@ const gameStore = useGameStore()
 const result = computed(() => gameStore.result)
 const stars = computed(() => result.value?.stars ?? 0)
 const completed = computed(() => result.value?.completed ?? false)
+const hasErrors = computed(() => result.value?.errors && result.value.errors.length > 0)
+const errors = computed(() => result.value?.errors ?? [])
 
 function nextLevel() {
   gameStore.reset()
@@ -39,6 +41,14 @@ function backToLobby() {
         >⭐</span>
       </div>
 
+      <div class="errors-panel" v-if="hasErrors">
+        <h3 class="errors-title">⚠️ 关卡问题</h3>
+        <ul class="errors-list">
+          <li v-for="(error, index) in errors" :key="index">{{ error }}</li>
+        </ul>
+        <p class="errors-hint">请返回关卡编辑器修复这些问题后重试</p>
+      </div>
+
       <div class="stats-panel" v-if="result">
         <div class="stat-item">
           <span class="stat-label">用时</span>
@@ -48,7 +58,7 @@ function backToLobby() {
           <span class="stat-label">钥匙</span>
           <span class="stat-value">{{ result.keysCollected }} / {{ result.totalKeys }}</span>
         </div>
-        <div class="stat-item">
+        <div class="stat-item" v-if="!hasErrors">
           <span class="stat-label">评级</span>
           <span class="stat-value">{{ '⭐'.repeat(stars) }}</span>
         </div>
@@ -144,6 +154,42 @@ function backToLobby() {
   font-family: 'ZCOOL KuaiLe', cursive;
   font-size: 1.25rem;
   color: #FF8C42;
+}
+
+.errors-panel {
+  background: rgba(229, 57, 53, 0.1);
+  border: 2px solid rgba(229, 57, 53, 0.3);
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  text-align: left;
+}
+
+.errors-title {
+  font-family: 'ZCOOL KuaiLe', cursive;
+  color: #E53935;
+  font-size: 1.25rem;
+  margin-bottom: 0.75rem;
+  text-align: center;
+}
+
+.errors-list {
+  margin: 0;
+  padding-left: 1.5rem;
+  color: #5D4037;
+}
+
+.errors-list li {
+  margin: 0.375rem 0;
+  font-size: 0.95rem;
+}
+
+.errors-hint {
+  margin-top: 0.75rem;
+  text-align: center;
+  color: #795548;
+  font-size: 0.875rem;
+  font-style: italic;
 }
 
 .result-actions {

@@ -1,4 +1,4 @@
-import { Container, Graphics, Text, TextStyle } from 'pixi.js'
+import { Container, Graphics, Text, TextStyle, Rectangle } from 'pixi.js'
 import type { TileType, LevelData } from '@/types'
 import { gridToScreen, getDepth, TILE_WIDTH, TILE_HEIGHT } from '@/game/map/IsoHelper'
 
@@ -40,6 +40,9 @@ export class EditorScene {
     overlays: { x: number; y: number; type: string }[]
   }) | null = null
 
+  private viewWidth = 800
+  private viewHeight = 600
+
   constructor() {
     this.container = new Container()
     this.container.addChild(this.tileContainer)
@@ -50,8 +53,10 @@ export class EditorScene {
         const worldX = e.x - this.offsetX
         const worldY = e.y - this.offsetY
         const grid = this.screenToGridLocal(worldX, worldY)
-        this.gridClickCallback(grid.gridX, grid.gridY)
-        this.redrawAll()
+        if (grid.gridX >= 0 && grid.gridY >= 0 && grid.gridX < this.width && grid.gridY < this.height) {
+          this.gridClickCallback(grid.gridX, grid.gridY)
+          this.redrawAll()
+        }
       }
     })
   }
@@ -189,6 +194,9 @@ export class EditorScene {
   }
 
   resize(width: number, height: number): void {
+    this.viewWidth = width
+    this.viewHeight = height
     this.container.position.set(width / 2, height / 2)
+    this.container.hitArea = new Rectangle(-width / 2, -height / 2, width, height)
   }
 }

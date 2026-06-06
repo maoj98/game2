@@ -97,6 +97,7 @@ export interface GameResult {
   keysCollected: number
   totalKeys: number
   stars: 0 | 1 | 2 | 3
+  errors?: string[]
 }
 
 export interface GameState {

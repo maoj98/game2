@@ -129,9 +129,20 @@ function selectTool(tool: EditorTool) {
   refreshScene()
 }
 
+const saveErrors = ref<string[]>([])
+const showSaveError = ref(false)
+
 function saveLevel() {
-  editorStore.saveToLocalStorage()
-  alert('关卡已保存！')
+  const result = editorStore.saveToLocalStorage()
+  if (result.success) {
+    saveErrors.value = []
+    showSaveError.value = false
+    alert('关卡已保存！')
+  } else {
+    saveErrors.value = result.errors
+    showSaveError.value = true
+    alert('保存失败：\n' + result.errors.map((e, i) => `${i + 1}. ${e}`).join('\n'))
+  }
 }
 
 function resetEditor() {

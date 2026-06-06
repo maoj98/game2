@@ -25,6 +25,50 @@ export const useEditorStore = defineStore('editor', () => {
     return name.value.length > 0 && keys.value.length > 0 && doors.value.length > 0 && playerSpawns.value.length > 0
   })
 
+  function validateLevel(): { valid: boolean; errors: string[] } {
+    const errors: string[] = []
+
+    if (!name.value || name.value.trim().length === 0) {
+      errors.push('关卡名称不能为空')
+    }
+
+    if (width.value < 5 || width.value > 20) {
+      errors.push('地图宽度必须在 5-20 之间')
+    }
+
+    if (height.value < 5 || height.value > 20) {
+      errors.push('地图高度必须在 5-20 之间')
+    }
+
+    if (timeLimit.value < 30 || timeLimit.value > 600) {
+      errors.push('限时必须在 30-600 秒之间')
+    }
+
+    if (playerSpawns.value.length === 0) {
+      errors.push('必须至少放置一个出生点')
+    }
+
+    if (keys.value.length === 0) {
+      errors.push('必须至少放置一把钥匙')
+    }
+
+    if (doors.value.length === 0) {
+      errors.push('必须至少放置一扇门')
+    }
+
+    const minRequiredKeys = Math.min(...doors.value.map(d => d.requiredKeys))
+    if (keys.value.length < minRequiredKeys) {
+      errors.push(`钥匙数量不足：需要至少 ${minRequiredKeys} 把钥匙才能打开要求最高的门`)
+    }
+
+    const hasGround = tiles.value.some(row => row.some(tile => tile === 'ground'))
+    if (!hasGround) {
+      errors.push('地图必须包含可通行的地面')
+    }
+
+    return { valid: errors.length === 0, errors }
+  }
+
   function initGrid(): void {
     const newTiles: TileType[][] = []
     for (let y = 0; y < height.value; y++) {
@@ -210,11 +254,16 @@ export const useEditorStore = defineStore('editor', () => {
     }
   }
 
-  function saveToLocalStorage(): void {
+  function saveToLocalStorage(): { success: boolean; errors: string[] } {
+    const validation = validateLevel()
+    if (!validation.valid) {
+      return { success: false, errors: validation.errors }
+    }
     const data = exportLevel()
     const saved = JSON.parse(localStorage.getItem('custom_levels') ?? '[]')
     saved.push(data)
     localStorage.setItem('custom_levels', JSON.stringify(saved))
+    return { success: true, errors: [] }
   }
 
   function loadFromLocalStorage(): LevelData[] {
@@ -255,7 +304,7 @@ export const useEditorStore = defineStore('editor', () => {
     isValid,
     initGrid, setTile, addMechanism, removeMechanism, addItem, removeItem,
     addKey, removeKey, addDoor, removeDoor, setPlayerSpawns, resize,
-    placeElement, eraseElement,
+    placeElement, eraseElement, validateLevel,
     exportLevel, saveToLocalStorage, loadFromLocalStorage, loadLevel, reset,
   }
 })
