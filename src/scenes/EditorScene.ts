@@ -178,7 +178,7 @@ export class EditorScene {
   private screenToGridLocal(screenX: number, screenY: number): { gridX: number; gridY: number } {
     const gx = (screenX / (TILE_WIDTH / 2) + screenY / (TILE_HEIGHT / 2)) / 2
     const gy = (screenY / (TILE_HEIGHT / 2) - screenX / (TILE_WIDTH / 2)) / 2
-    return { gridX: Math.floor(gx), gridY: Math.floor(gy) }
+    return { gridX: Math.round(gx), gridY: Math.round(gy) }
   }
 
   clear(): void {

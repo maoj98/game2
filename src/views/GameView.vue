@@ -24,7 +24,8 @@ let debugInterval: number | null = null
 onMounted(async () => {
   if (!canvasContainer.value) return
 
-  const level = LEVELS.find((l) => l.id === roomStore.levelId) ?? LEVELS[0]
+  roomStore.loadCustomLevels()
+  const level = roomStore.currentLevel
   const playerCount = roomStore.players.length || 1
 
   gameStore.loadLevel(level, playerCount)

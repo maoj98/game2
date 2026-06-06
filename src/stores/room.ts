@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { PlayerState, RoomState } from '@/types'
+import type { PlayerState, RoomState, LevelData } from '@/types'
 import { SKINS, LEVELS } from '@/data'
 
 let playerCounter = 0
@@ -11,8 +11,14 @@ export const useRoomStore = defineStore('room', () => {
   const levelId = ref('level1')
   const status = ref<'waiting' | 'playing' | 'result'>('waiting')
   const players = ref<PlayerState[]>([])
+  const customLevels = ref<LevelData[]>([])
 
-  const currentLevel = computed(() => LEVELS.find((l) => l.id === levelId.value) ?? LEVELS[0])
+  const allLevels = computed(() => [...LEVELS, ...customLevels.value])
+  const currentLevel = computed(() => allLevels.value.find((l) => l.id === levelId.value) ?? LEVELS[0])
+
+  function loadCustomLevels(): void {
+    customLevels.value = JSON.parse(localStorage.getItem('custom_levels') ?? '[]')
+  }
   const canStart = computed(() => players.value.length > 0 && players.value.every((p) => p.ready))
   const isHost = computed(() => true)
 
@@ -94,12 +100,13 @@ export const useRoomStore = defineStore('room', () => {
     levelId.value = 'level1'
     status.value = 'waiting'
     players.value = []
+    customLevels.value = []
     resetCounter()
   }
 
   return {
-    roomId, hostId, levelId, status, players,
+    roomId, hostId, levelId, status, players, customLevels, allLevels,
     currentLevel, canStart, isHost,
-    createRoom, joinRoom, setPlayerSkin, setPlayerReady, setLevel, setStatus, removePlayer, reset, getCounter,
+    createRoom, joinRoom, setPlayerSkin, setPlayerReady, setLevel, setStatus, removePlayer, reset, getCounter, loadCustomLevels,
   }
 })

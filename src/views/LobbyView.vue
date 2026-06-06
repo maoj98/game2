@@ -1,15 +1,21 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useRoomStore } from '@/stores/room'
-import { SKINS, LEVELS } from '@/data'
+import { SKINS } from '@/data'
 
 const router = useRouter()
 const roomStore = useRoomStore()
 
+const allLevels = computed(() => roomStore.allLevels)
+const currentLevel = computed(() => roomStore.currentLevel)
+
 const canStart = computed(() => roomStore.canStart)
 const players = computed(() => roomStore.players)
-const currentLevel = computed(() => roomStore.currentLevel)
+
+onMounted(() => {
+  roomStore.loadCustomLevels()
+})
 
 const selectedPlayerIdx = ref(0)
 
@@ -154,7 +160,7 @@ function goBack() {
           <h2 class="section-title">选择关卡</h2>
           <div class="level-list">
             <div
-              v-for="level in LEVELS"
+              v-for="level in allLevels"
               :key="level.id"
               class="level-card"
               :class="{ selected: roomStore.levelId === level.id }"
