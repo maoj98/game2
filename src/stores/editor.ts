@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { LevelData, TileType, MechanismConfig, ItemSpawn, IsoPosition, DoorConfig } from '@/types'
+import { LEVELS } from '@/data'
 
 export type EditorTool = 'tile' | 'mechanism' | 'item' | 'key' | 'door' | 'spawn' | 'erase'
 
@@ -254,11 +255,28 @@ export const useEditorStore = defineStore('editor', () => {
     }
   }
 
-  function saveToLocalStorage(): { success: boolean; errors: string[] } {
+  function checkNameExists(levelName: string): boolean {
+    const trimmedName = levelName.trim()
+    const existsInBuiltin = LEVELS.some(l => l.name.trim() === trimmedName)
+    const saved = JSON.parse(localStorage.getItem('custom_levels') ?? '[]') as LevelData[]
+    const existsInCustom = saved.some(l => l.name.trim() === trimmedName)
+    return existsInBuiltin || existsInCustom
+  }
+
+  function saveToLocalStorage(): { success: boolean; errors: string[]; nameConflict?: boolean } {
     const validation = validateLevel()
     if (!validation.valid) {
       return { success: false, errors: validation.errors }
     }
+
+    if (checkNameExists(name.value)) {
+      return {
+        success: false,
+        errors: [`关卡名称"${name.value}"已存在，请修改关卡名称后重试`],
+        nameConflict: true
+      }
+    }
+
     const data = exportLevel()
     const saved = JSON.parse(localStorage.getItem('custom_levels') ?? '[]')
     saved.push(data)
@@ -304,7 +322,7 @@ export const useEditorStore = defineStore('editor', () => {
     isValid,
     initGrid, setTile, addMechanism, removeMechanism, addItem, removeItem,
     addKey, removeKey, addDoor, removeDoor, setPlayerSpawns, resize,
-    placeElement, eraseElement, validateLevel,
+    placeElement, eraseElement, validateLevel, checkNameExists,
     exportLevel, saveToLocalStorage, loadFromLocalStorage, loadLevel, reset,
   }
 })

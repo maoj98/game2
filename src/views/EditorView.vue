@@ -46,6 +46,7 @@ const itemTypes: { value: ItemType; label: string }[] = [
 ]
 
 const isValid = computed(() => editorStore.isValid)
+const nameConflict = computed(() => editorStore.name.trim().length > 0 && editorStore.checkNameExists(editorStore.name))
 
 function refreshScene() {
   if (!scene) return
@@ -132,6 +133,8 @@ function selectTool(tool: EditorTool) {
 const saveErrors = ref<string[]>([])
 const showSaveError = ref(false)
 
+const nameInputRef = ref<HTMLInputElement | null>(null)
+
 function saveLevel() {
   const result = editorStore.saveToLocalStorage()
   if (result.success) {
@@ -141,7 +144,18 @@ function saveLevel() {
   } else {
     saveErrors.value = result.errors
     showSaveError.value = true
-    alert('保存失败：\n' + result.errors.map((e, i) => `${i + 1}. ${e}`).join('\n'))
+
+    if (result.nameConflict) {
+      const rename = confirm(`关卡名称"${editorStore.name}"已存在！\n\n是否立即修改关卡名称？`)
+      if (rename && nameInputRef.value) {
+        nameInputRef.value.focus()
+        nameInputRef.value.select()
+      } else {
+        alert('保存失败：\n' + result.errors.map((e, i) => `${i + 1}. ${e}`).join('\n'))
+      }
+    } else {
+      alert('保存失败：\n' + result.errors.map((e, i) => `${i + 1}. ${e}`).join('\n'))
+    }
   }
 }
 
@@ -164,7 +178,10 @@ function goBack() {
         <h3>地图信息</h3>
         <div class="field">
           <label>关卡名称</label>
-          <input v-model="editorStore.name" type="text" class="input-field" />
+          <input ref="nameInputRef" v-model="editorStore.name" type="text" class="input-field" :class="{ 'input-error': nameConflict }" />
+          <div v-if="nameConflict" class="name-conflict-hint">
+            ⚠️ 名称"{{ editorStore.name }}"已存在，请修改
+          </div>
         </div>
         <div class="field-row">
           <div class="field">
@@ -327,6 +344,18 @@ function goBack() {
 .input-field:focus {
   border-color: #FF8C42;
   outline: none;
+}
+
+.input-error {
+  border-color: #E53935 !important;
+  background-color: #FFEBEE;
+}
+
+.name-conflict-hint {
+  margin-top: 0.375rem;
+  font-size: 0.75rem;
+  color: #E53935;
+  font-weight: 500;
 }
 
 .field-row {
